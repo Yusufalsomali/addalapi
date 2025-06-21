@@ -22,7 +22,10 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 @app.post("/chat")
 async def chat(request: Request):
     data = await request.json()
-    messages = data.get("messages", [])
+    messages = data.get("messages")
+
+    if not messages or not isinstance(messages, list) or len(messages) == 0:
+        return {"error": "Missing or invalid 'messages'. Must be a list with at least one message."}
 
     response = client.chat.completions.create(
         model="llama3-70b-8192",
