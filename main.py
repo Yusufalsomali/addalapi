@@ -1,19 +1,32 @@
+from fastapi import FastAPI, Request
 from groq import Groq
+import os
+from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
-# Insert your Groq API key here
-client = Groq(api_key="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")
+load_dotenv()
 
-# Ask the user a legal question
-question = input("Ask a legal question: ")
+app = FastAPI()
 
-# Send request to LLaMA 3 (70B) via Groq
-response = client.chat.completions.create(
-    model="llama3-70b-8192",
-    messages=[
-        {"role": "system", "content": "You are a helpful legal assistant who provides detailed and clear answers."},
-        {"role": "user", "content": question}
-    ]
+# Allow frontend to talk to backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can restrict to Lovable domain later
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Print the response
-print("\nAssistant:", response.choices[0].message.content.strip())
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+@app.post("/chat")
+async def chat(request: Request):
+    data = await request.json()
+    messages = data.get("messages", [])
+
+    response = client.chat.completions.create(
+        model="llama3-70b-8192",
+        messages=messages
+    )
+
+    return {"response": response.choices[0].message.content.strip()}
